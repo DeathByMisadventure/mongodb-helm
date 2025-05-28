@@ -1,0 +1,146 @@
+{{- if not .Values.auth.host }}
+{{- $mongoport := default "27017" .Values.auth.port -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-mongodb-init-configmap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mongodb
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+data:
+  init-replicaset.js: |
+    const adminDb = db.getSiblingDB('admin');
+    {{- if .Values.auth.adminUser }}
+    adminDb.auth('{{ .Values.auth.adminUser }}', '{{ .Values.auth.adminPassword }}');
+    {{- end }}
+    rs.initiate({
+      _id: "{{ .Values.replicaSet }}",
+      members: [
+        {{ range $i, $e := until (int .Values.replicaCount) }}
+        { _id: {{ $i }}, host: "{{ $.Release.Name }}-mongodb-{{ $i }}.{{ $.Values.name }}-headless.{{ $.Release.Namespace }}.svc.cluster.local:{{ $mongoport }}" }{{ if lt $i (sub (int $.Values.replicaCount) 1) }},{{ end }}
+        {{- end }}
+      ]
+    });
+  init-user.js: |
+    use admin
+    db.createUser({
+      user: '{{ .Values.auth.dbUser }}',
+      pwd:  '{{ .Values.auth.dbPassword }}',
+      roles: [{
+        role: 'readWrite',
+        db: '{{ .Values.auth.database }}'
+      }]
+    })
+  init.sh: |
+    #!/bin/bash
+
+    # Exit on error
+    set -e
+
+    # Log function with timestamp
+    log() {
+      echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] $1"
+    }
+
+    # Error log and exit
+    error_exit() {
+      echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] ERROR: $1" >&2
+      exit 1
+    }
+
+    # Required environment variables
+    : "${MONGODB_REPLICA_SET_NAME:={{ .Values.auth.replicaSet }}}"
+
+    # Primary node details
+    PRIMARY_HOST="{{ $.Release.Name }}-mongodb-0.{{ .Values.name }}-headless.{{ $.Release.Namespace }}.svc.cluster.local:{{ $mongoport }}"
+    FINAL_HOST="{{ $.Release.Name }}-mongodb-{{ sub .Values.replicaCount 1 }}.{{ .Values.name }}-headless.{{ $.Release.Namespace }}.svc.cluster.local:{{ $mongoport }}"
+
+    # Credentials (only used if adminUser is set)
+    {{- if .Values.auth.adminUser }}
+    MONGODB_USERNAME={{ .Values.auth.adminUser | quote }}
+    MONGODB_PASSWORD={{ .Values.auth.adminPassword | quote }}
+    MONGODB_DATABASE=admin
+    AUTH_PARAMS="-u ${MONGODB_USERNAME} -p ${MONGODB_PASSWORD} --authenticationDatabase ${MONGODB_DATABASE}"
+    {{- else }}
+    AUTH_PARAMS=""
+    {{- end }}
+
+    # Log environment and configuration
+    log "Starting replica set initialization"
+    log "HOSTNAME: ${HOSTNAME:-unknown}"
+    log "PRIMARY_HOST: ${PRIMARY_HOST}"
+    log "MONGODB_REPLICA_SET_NAME: ${MONGODB_REPLICA_SET_NAME}"
+
+    # Check if primary node is online and responding
+    MAX_ATTEMPTS=12
+    SLEEP_INTERVAL=5
+    ATTEMPT=1
+
+    log "Checking if primary node (${PRIMARY_HOST}) is online..."
+    while [ ${ATTEMPT} -le ${MAX_ATTEMPTS} ]; do
+      log "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: Pinging primary node..."
+      if mongosh --host "${PRIMARY_HOST}" ${AUTH_PARAMS} --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; then
+        log "Primary node is online and responding"
+        break
+      else
+        log "Primary node not responding yet"
+        if [ ${ATTEMPT} -eq ${MAX_ATTEMPTS} ]; then
+          error_exit "Primary node (${PRIMARY_HOST}) failed to respond after ${MAX_ATTEMPTS} attempts"
+        fi
+        sleep ${SLEEP_INTERVAL}
+      fi
+      ((ATTEMPT++))
+    done
+
+    log "Checking if final node (${FINAL_HOST}) is online..."
+    while [ ${ATTEMPT} -le ${MAX_ATTEMPTS} ]; do
+      log "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: Pinging Final node..."
+      if mongosh --host "${FINAL_HOST}" ${AUTH_PARAMS} --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; then
+        log "Final node is online and responding"
+        break
+      else
+        log "Final node not responding yet"
+        if [ ${ATTEMPT} -eq ${MAX_ATTEMPTS} ]; then
+          error_exit "Final node (${FINAL_HOST}) failed to respond after ${MAX_ATTEMPTS} attempts"
+        fi
+        sleep ${SLEEP_INTERVAL}
+      fi
+      ((ATTEMPT++))
+    done
+
+    # Check if replica set is already initialized
+    log "Checking replica set status..."
+    if mongosh --host "${PRIMARY_HOST}" ${AUTH_PARAMS} --eval "rs.status().ok" >/dev/null 2>&1; then
+      log "Replica set already initialized, skipping initialization"
+    else
+      log "Replica set not initialized, proceeding with rs.initiate()"
+      # Run mongosh to initialize the repliZca set
+      log "Executing mongosh to initialize replica set on ${PRIMARY_HOST}"
+      if mongosh --host "${PRIMARY_HOST}" ${AUTH_PARAMS} /init/init-replicaset.js > /tmp/mongosh_output.log 2>&1; then
+        log "Replica set initialized successfully"
+        cat /tmp/mongosh_output.log
+      else
+        log "Failed to initialize replica set"
+        cat /tmp/mongosh_output.log >&2
+        error_exit "mongosh exited with code $?"
+      fi
+      log "Replica set initialization complete"
+    fi
+
+    sleep ${SLEEP_INTERVAL}
+
+    log "Executing mongosh to initialize user set on {{ .Values.replicaSet }}/{{ .Values.name }}"
+    if mongosh --host "{{ .Values.replicaSet }}/{{ .Values.name }}" ${AUTH_PARAMS} < /init/init-user.js > /tmp/mongosh_output.log 2>&1; then
+      log "User set initialized successfully"
+      cat /tmp/mongosh_output.log
+    else
+      log "Failed to initialize User set"
+      cat /tmp/mongosh_output.log >&2
+      error_exit "mongosh exited with code $?"
+    fi
+{{- end }}

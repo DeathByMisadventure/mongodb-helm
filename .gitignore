@@ -1,0 +1,24 @@
+test.yaml
+*private.yaml
+
+
+# Ignore the deployment outputs
+**/charts
+chart.lock
+*.tgz
+*.chart
+*.zip
+
+# Ignore IDE/editor files
+/.idea/
+/.vscode/
+/*.iml
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore backup files
+*~
+*.bak
+*.swp

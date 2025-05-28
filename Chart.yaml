@@ -1,0 +1,5 @@
+apiVersion: v2
+name: mongodb-cluster
+description: A Helm subchart for deploying a MongoDB replica set
+version: 0.1.0
+appVersion: "8.0"

@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-mongodb-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mongodb
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: mongo-init
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+          - "/bin/sh"
+          - "-c"
+        args:
+          - |
+            /init/init.sh;
+            sleep 5;
+        volumeMounts:
+        - name: init-script
+          mountPath: /init/
+      volumes:
+      - name: init-script
+        configMap:
+          name: {{ .Release.Name }}-mongodb-init-configmap
+          defaultMode: 511

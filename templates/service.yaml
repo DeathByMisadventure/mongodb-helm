@@ -1,0 +1,44 @@
+{{- $mongoport := default "27017" .Values.service.port -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mongodb
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $mongoport }}
+      targetPort: {{ $mongoport }}
+      protocol: TCP
+      name: mongodb
+  selector:
+    app: {{ .Release.Name }}-mongodb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mongodb
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+spec:
+  clusterIP: None
+  ports:
+    - port: {{ $mongoport }}
+      targetPort: {{ $mongoport }}
+      protocol: TCP
+      name: mongodb
+  selector:
+    app: {{ .Release.Name }}-mongodb

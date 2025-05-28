@@ -1,0 +1,41 @@
+# -- Pod name
+name: mongodb
+# -- Number of replica nodes
+replicaCount: 3
+# -- Mongodb image information
+image:
+  repository: mongo
+  tag: "8.0"
+  pullPolicy: IfNotPresent
+# -- Credentials for the deployment
+auth:
+  adminUser: "admin-user"
+  adminPassword: "admin-password"
+  database: "db1"
+  dbUser: "dbuser"
+  dbPassword: "dbpass"
+# -- Name of the replicaSet to create from the replica nodes
+replicaSet: rs0
+persistence:
+  storageClass: ""
+  size: 8Gi
+# -- Resources available for the containers
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+# -- Security context for the deployment
+securityContext:
+  privileged: true
+  allowPrivilegeEscalation: true
+  seccompProfile:
+    type: RuntimeDefault
+  capabilities:
+    drop:
+      - all
+service:
+  type: ClusterIP
+  port: "27017"

@@ -1,0 +1,82 @@
+{{- $mongoport := default "27017" .Values.service.port -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-mongodb
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mongodb
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+spec:
+  serviceName: {{ .Values.name }}-headless
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-mongodb
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-mongodb
+    spec:
+      initContainers:
+        - name: {{ .Values.name }}-init
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 0
+          command:
+            - "/bin/sh"
+            - "-c"
+          args:
+            - |
+              if [ ! -f /data/db/keyfile ]; then
+                echo $KEYFILE > /data/db/keyfile
+                chmod 600 /data/db/keyfile
+                chown mongod:mongod /data/db/keyfile
+              fi
+          envFrom:
+            - secretRef:
+               name: {{ .Values.name }}-init-secret
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+      containers:
+        - name: {{ .Values.name }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - containerPort: {{ $mongoport }}
+              name: mongodb
+          args:
+            - "--replSet={{ .Values.replicaSet }}"
+            - "--bind_ip_all"
+            - "--keyFile=/data/db/keyfile"
+          envFrom:
+            - secretRef:
+               name: {{ .Values.name }}-init-secret
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+      volumes:
+      - name: keyfile
+        secret:
+          secretName: {{ .Values.name }}-init-secret
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
