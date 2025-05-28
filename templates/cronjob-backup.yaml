@@ -12,18 +12,26 @@ spec:
     spec:
       template:
         spec:
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 999
           containers:
             - name: mongo-backup
               image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
               imagePullPolicy: {{ .Values.image.pullPolicy }}
+
               command:
                 - "/bin/sh"
                 - "-c"
               args:
                 - |
-                  mongodump --uri={{ include "mongodb.connectionString" . }} --archive=/backup/dump.archive
+                  DATE=$(date +%Y%m%d)
+                  BACKUP_FILE=/backup/backup-${DATE}.gz
+                  echo "Creating backup at ${BACKUP_FILE}"
+                  ls -ld /backup || echo "Backup directory not found"
+                  mongodump --uri='{{ include "mongodb.connectionString" . }}' --archive=/backup/${BACKUP_FILE} --gzip
                   {{- if .Values.backup.storage.s3.enabled }}
-                  aws s3 cp /backup/dump.archive s3://{{ .Values.backup.storage.s3.bucket }}/backup-$(date +%Y%m%d%H%M%S).archive
+                  aws s3 cp ${BACKUP_FILE} s3://{{ .Values.backup.storage.s3.bucket }}/backup-$(date +%Y%m%d%H%M%S).archive
                   {{- end }}
               volumeMounts:
                 - name: backup

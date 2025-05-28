@@ -1,0 +1,14 @@
+name: Lint and Test Chart
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: helm lint .
+      - run: helm template . | datree test -
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: helm install --dry-run test-release .

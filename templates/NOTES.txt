@@ -3,7 +3,7 @@ Connection String:
 {{ include "mongodb.connectionString" . }}
 
 To check replica set status:
-kubectl exec -n {{ .Release.Namespace }} {{ include "mongodb.fullname" . }}-0 -- mongosh -u {{ .Values.auth.rootUser }} -p {{ .Values.auth.rootPassword }} --authenticationDatabase admin --eval "rs.status()"
+kubectl exec -n {{ .Release.Namespace }} {{ .Release.Name }}-mongodb-0 -- mongosh -u {{ .Values.auth.adminUser }} -p {{ .Values.auth.adminPassword }} --authenticationDatabase admin --eval "rs.status()"
 
 {{- if .Values.backup.enabled }}
 To access backups:
