@@ -42,3 +42,27 @@ spec:
       name: mongodb
   selector:
     app: {{ .Release.Name }}-mongodb
+{{- if .Values.service.externalAccess.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mongodb.fullname" . }}-external
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mongodb
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+spec:
+  type: {{ .Values.service.externalAccess.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 27017
+      protocol: TCP
+      name: mongodb
+  selector:
+    app: {{ include "mongodb.fullname" . }}
+{{- end }}

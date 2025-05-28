@@ -1,0 +1,50 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-mongodb-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mongodb
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+spec:
+  schedule: {{ .Values.backup.cronjob.schedule }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: mongo-backup
+              image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - "/bin/sh"
+                - "-c"
+              args:
+                - |
+                  mongodump --uri={{ include "mongodb.connectionString" . }} --archive=/backup/dump.archive
+                  {{- if .Values.backup.storage.s3.enabled }}
+                  aws s3 cp /backup/dump.archive s3://{{ .Values.backup.storage.s3.bucket }}/backup-$(date +%Y%m%d%H%M%S).archive
+                  {{- end }}
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+              {{- if .Values.backup.storage.s3.enabled }}
+              envFrom:
+                - secretRef:
+                    name: {{ .Values.backup.storage.s3.credentialsSecret }}
+              {{- end }}
+          volumes:
+            {{- if .Values.backup.storage.pvc.enabled }}
+            - name: backup
+              persistentVolumeClaim:
+                claimName: {{ include "mongodb.fullname" . }}-backup
+            {{- else }}
+            - name: backup
+              emptyDir: {}
+            {{- end }}
+{{- end }}

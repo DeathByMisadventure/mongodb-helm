@@ -36,6 +36,44 @@ securityContext:
   capabilities:
     drop:
       - all
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
 service:
   type: ClusterIP
   port: "27017"
+  externalAccess:
+      enabled: false
+      type: LoadBalancer
+pdb:
+  enabled: true
+  maxUnavailable: 1
+backup:
+  enabled: true
+  cronjob:
+    schedule: "0 0 * * *"
+  storage:
+    type: emptyDir
+    pvc:
+      enabled: false
+      storageClass: ""
+      size: 10Gi
+    s3:
+      enabled: false
+      bucket: ""
+      credentialsSecret: ""
+  credentials:
+    username: dbuser
+    password: dbpass
+    existingSecret: ""

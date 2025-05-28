@@ -1,0 +1,20 @@
+{{/* Create Mongodb connection URL */}}
+{{- define "mongodb.connectionString" -}}
+{{- $username := .Values.auth.dbUser -}}
+{{- $password := .Values.auth.dbPassword -}}
+{{- $database := .Values.auth.database | default "test" -}}
+{{- $authSource := "admin" -}}
+{{- $port := .Values.auth.port | default "27017" -}}
+{{- $hosts := list -}}
+{{- range $i := until (int .Values.replicaCount) -}}
+{{- $hosts = append $hosts (printf "%s-mongodb-%d.%s-headless.%s.svc.cluster.local:%s" $.Release.Name $i $.Values.name $.Release.Namespace $port) -}}
+{{- end -}}
+{{- $hostList := join "," $hosts -}}
+{{- $queryParams := list -}}
+{{- if .Values.replicaSet -}}
+{{- $queryParams = append $queryParams (printf "replicaSet=%s" $.Values.replicaSet) -}}
+{{- end -}}
+{{- $queryParams = append $queryParams (printf "authSource=%s" $authSource) -}}
+{{- $queryString := join "&" $queryParams -}}
+{{- printf "mongodb://%s:%s@%s/%s?%s" $username $password $hostList $database $queryString -}}
+{{- end -}}

@@ -52,6 +52,32 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
+          livenessProbe:
+            {{- if .Values.livenessProbe.enabled }}
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            {{- end }}
+          readinessProbe:
+            {{- if .Values.readinessProbe.enabled }}
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            {{- end }}
           ports:
             - containerPort: {{ $mongoport }}
               name: mongodb
