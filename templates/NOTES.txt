@@ -1,3 +1,17 @@
 Installation complete.
 Connection String:
 {{ include "mongodb.connectionString" . }}
+
+To check replica set status:
+kubectl exec -n {{ .Release.Namespace }} {{ include "mongodb.fullname" . }}-0 -- mongosh -u {{ .Values.auth.rootUser }} -p {{ .Values.auth.rootPassword }} --authenticationDatabase admin --eval "rs.status()"
+
+{{- if .Values.backup.enabled }}
+To access backups:
+{{- if .Values.backup.storage.s3.enabled }}
+aws s3 ls s3://{{ .Values.backup.storage.s3.bucket }}/
+{{- else if .Values.backup.storage.pvc.enabled }}
+kubectl exec -n {{ .Release.Namespace }} -it $(kubectl get pod -n {{ .Release.Namespace }} -l app={{ include "mongodb.fullname" . }}-backup -o jsonpath="{.items[0].metadata.name}") -- ls /backup
+{{- end }}
+{{- end }}
+
+For more details, see the README: https://github.com/DeathByMisadventure/mongodb-helm

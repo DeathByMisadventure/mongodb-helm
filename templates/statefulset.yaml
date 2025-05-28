@@ -5,12 +5,7 @@ metadata:
   name: {{ .Release.Name }}-mongodb
   namespace: {{ .Release.Namespace }}
   labels:
-    app: mongodb
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/component: mongodb
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    {{- include "mongodb.labels" . | nindent 4 }}
 spec:
   serviceName: {{ .Values.name }}-headless
   replicas: {{ .Values.replicaCount }}
@@ -22,6 +17,7 @@ spec:
       labels:
         app: {{ .Release.Name }}-mongodb
     spec:
+      updateStrategy: {{- toYaml .Values.updateStrategy | nindent 8 }}
       initContainers:
         - name: {{ .Values.name }}-init
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}

@@ -2,6 +2,7 @@
 name: mongodb
 # -- Number of replica nodes
 replicaCount: 3
+extraLabels: {}
 # -- Mongodb image information
 image:
   repository: mongo
@@ -50,6 +51,10 @@ readinessProbe:
   timeoutSeconds: 5
   failureThreshold: 6
   successThreshold: 1
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 0
 service:
   type: ClusterIP
   port: "27017"

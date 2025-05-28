@@ -6,12 +6,7 @@ metadata:
   name: {{ .Release.Name }}-mongodb-init-configmap
   namespace: {{ .Release.Namespace }}
   labels:
-    app: mongodb
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/component: mongodb
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    {{- include "mongodb.labels" . | nindent 4 }}
 data:
   init-replicaset.js: |
     const adminDb = db.getSiblingDB('admin');
