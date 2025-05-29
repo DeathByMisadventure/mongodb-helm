@@ -12,6 +12,8 @@ metadata:
 spec:
   template:
     spec:
+      activeDeadlineSeconds: 300
+      backoffLimit: 3
       restartPolicy: OnFailure
       containers:
       - name: mongo-init

@@ -78,7 +78,3 @@ backup:
       enabled: false
       bucket: ""
       credentialsSecret: ""
-  credentials:
-    username: dbuser
-    password: dbpass
-    existingSecret: ""

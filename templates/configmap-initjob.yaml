@@ -92,6 +92,7 @@ data:
       ((ATTEMPT++))
     done
 
+    ATTEMPT=1
     log "Checking if final node (${FINAL_HOST}) is online..."
     while [ ${ATTEMPT} -le ${MAX_ATTEMPTS} ]; do
       log "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: Pinging Final node..."

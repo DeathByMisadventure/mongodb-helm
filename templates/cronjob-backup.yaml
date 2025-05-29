@@ -19,7 +19,6 @@ spec:
             - name: mongo-backup
               image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
               imagePullPolicy: {{ .Values.image.pullPolicy }}
-
               command:
                 - "/bin/sh"
                 - "-c"
