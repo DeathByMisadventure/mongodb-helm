@@ -1,0 +1,15 @@
+{{- if ( and .Values.backup.enabled .Values.backup.storage.pvc.enabled ) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-mongodb-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mongodb.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+{{- end -}}

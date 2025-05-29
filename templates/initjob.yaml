@@ -10,10 +10,10 @@ metadata:
     "helm.sh/hook-weight": "-5"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
+  activeDeadlineSeconds: 300
+  backoffLimit: 3
   template:
     spec:
-      activeDeadlineSeconds: 300
-      backoffLimit: 3
       restartPolicy: OnFailure
       containers:
       - name: mongo-init

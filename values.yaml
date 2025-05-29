@@ -71,7 +71,7 @@ backup:
   storage:
     type: emptyDir
     pvc:
-      enabled: false
+      enabled: true
       storageClass: ""
       size: 10Gi
     s3:

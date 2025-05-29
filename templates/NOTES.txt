@@ -10,7 +10,7 @@ To access backups:
 {{- if .Values.backup.storage.s3.enabled }}
 aws s3 ls s3://{{ .Values.backup.storage.s3.bucket }}/
 {{- else if .Values.backup.storage.pvc.enabled }}
-kubectl exec -n {{ .Release.Namespace }} -it $(kubectl get pod -n {{ .Release.Namespace }} -l app={{ include "mongodb.fullname" . }}-backup -o jsonpath="{.items[0].metadata.name}") -- ls /backup
+kubectl exec -n {{ .Release.Namespace }} -it $(kubectl get pod -n {{ .Release.Namespace }} -l app-function={{ .Release.Name }}-mongodb-backup -o jsonpath="{.items[0].metadata.name}") -- ls /backup
 {{- end }}
 {{- end }}
 

@@ -11,6 +11,9 @@ spec:
   jobTemplate:
     spec:
       template:
+        metadata:
+          labels:
+            app-function: {{ .Release.Name }}-mongodb-backup
         spec:
           restartPolicy: Never
           securityContext:
@@ -28,7 +31,7 @@ spec:
                   BACKUP_FILE=/backup/backup-${DATE}.gz
                   echo "Creating backup at ${BACKUP_FILE}"
                   ls -ld /backup || echo "Backup directory not found"
-                  mongodump --uri='{{ include "mongodb.connectionString" . }}' --archive=/backup/${BACKUP_FILE} --gzip
+                  mongodump --uri='{{ include "mongodb.connectionString" . }}' --archive=${BACKUP_FILE} --gzip
                   {{- if .Values.backup.storage.s3.enabled }}
                   aws s3 cp ${BACKUP_FILE} s3://{{ .Values.backup.storage.s3.bucket }}/backup-$(date +%Y%m%d%H%M%S).archive
                   {{- end }}
@@ -44,7 +47,7 @@ spec:
             {{- if .Values.backup.storage.pvc.enabled }}
             - name: backup
               persistentVolumeClaim:
-                claimName: {{ include "mongodb.fullname" . }}-backup
+                claimName: {{ .Release.Name }}-mongodb-backup
             {{- else }}
             - name: backup
               emptyDir: {}
