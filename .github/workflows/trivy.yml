@@ -37,7 +37,7 @@ jobs:
           severity: 'HIGH,CRITICAL' # Optional: Focus on high/critical vulnerabilities
       - name: Run Trivy with table output for debugging
         run: |
-          trivy config --format table --severity HIGH,CRITICAL ./charts
+          trivy config --format table --severity HIGH,CRITICAL ./
         continue-on-error: true # Continue even if Trivy finds issues
 
       - name: Upload Trivy scan results to GitHub Security tab
