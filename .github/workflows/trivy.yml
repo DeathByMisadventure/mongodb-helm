@@ -35,6 +35,10 @@ jobs:
           ignore-unfixed: true
           github-pat: ${{ secrets.PAT }} # Add GitHub token
           severity: 'HIGH,CRITICAL' # Optional: Focus on high/critical vulnerabilities
+      - name: Run Trivy with table output for debugging
+        run: |
+          trivy config --format table --severity HIGH,CRITICAL ./charts
+        continue-on-error: true # Continue even if Trivy finds issues
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3 # Update to latest version
