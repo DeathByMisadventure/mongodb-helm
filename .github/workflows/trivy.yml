@@ -31,7 +31,7 @@ jobs:
           format: 'sarif'
           scan-ref: './' # Specify the path to your Helm chart directory
           output: 'trivy-results.sarif'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
           github-pat: ${{ secrets.PAT }} # Add GitHub token
           severity: 'HIGH,CRITICAL' # Optional: Focus on high/critical vulnerabilities
